@@ -6,6 +6,7 @@ using AllStars.Domain.Logs.Interfaces;
 using AllStars.Domain.User.Models;
 using FluentAssertions;
 using Moq;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace AllStars.Application.Test;
 
@@ -72,69 +73,130 @@ public class DutchServiceTests
         _dutchRepositoryMock.Verify(repo => repo.GetAll(_token), Times.Once);
     }
 
-    [Fact]
-    public async Task UpdateOne_ShouldUpdateScore_WhenScoreExists()
+    [Theory]
+    [InlineData(50, 100, 100, 1, 2, 2)]
+    [InlineData(100, 100, 100, 1, 1, 1)]
+    [InlineData(60, 40, 20, 3, 2, 1)]
+    [InlineData(150, 30, 30, 3, 1, 1)]
+    public async Task UpdateOne_ShouldAssignTies_WhenPlayersHaveTie(int score1, int score2, int newScore, int rank1, int rank2, int rank3)
     {
         // Arrange
         var gameId = Guid.NewGuid();
-        var nickName = "JohnDoe";
-        var points = 150; 
+        var updatedPlayerName = "Karolek";
 
-        var existingScore = new DutchScore { Id = Guid.NewGuid(), Points = 100 };
+        var existingScores = new List<DutchScore>()
+        {
+            new() { Id = Guid.NewGuid(), Player = new() {Nickname = "Matejus" }, Points = score1, Position = 0 },
+            new() { Id = Guid.NewGuid(), Player = new() {Nickname = "Baron" }, Points = score2, Position = 0 },
+            new() { Id = Guid.NewGuid(), Player = new() {Nickname = updatedPlayerName }, Points = 0, Position = 0 },
+        };
+
+        var updatedScores = new List<DutchScore>()
+        {
+            new() { Id = existingScores[0].Id, Player = existingScores[0].Player, Points = score1, Position = rank1 },
+            new() { Id = existingScores[1].Id, Player = existingScores[1].Player, Points = score2, Position = rank2 },
+            new() { Id = existingScores[2].Id, Player = existingScores[2].Player, Points = newScore, Position = rank3 },
+        };
 
         _dutchRepositoryMock
-            .Setup(repo => repo.GetOneScore(gameId, nickName, _token))
-            .ReturnsAsync(existingScore);
+            .Setup(repo => repo.GetScoresByGame(gameId, _token))
+            .ReturnsAsync(existingScores);
 
         // Act
-        var result = await _dutchService.UpdateOne(gameId, nickName, points, _token);
+        var result = await _dutchService.UpdateOne(gameId, updatedPlayerName, newScore, _token);
 
         // Assert
         Assert.True(result);
-        _dutchRepositoryMock.Verify(repo => repo.GetOneScore(gameId, nickName, _token), Times.Once);
-        _dutchRepositoryMock.Verify(repo => repo.UpdateOne(existingScore, points, _token), Times.Once);
+        _dutchRepositoryMock.Verify(repo => repo.GetScoresByGame(gameId, _token), Times.Once);
+        _dutchRepositoryMock.Verify(repo => repo.UpdateManyScores(
+             It.Is<List<DutchScore>>(list =>
+                 list.Count == updatedScores.Count &&
+                 list.All(es => updatedScores.Any(ls =>
+                     ls.Id == es.Id &&
+                     ls.PlayerId == es.PlayerId &&
+                     ls.Points == es.Points &&
+                     ls.Position == es.Position))
+             ), _token), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateOne_ShouldReturnFalse_WhenScoreDoesNotExist()
+    public async Task UpdateOne_ShouldReturnFalse_WhenScoreListIsEmpty()
     {
         // Arrange
         var gameId = Guid.NewGuid();
-        var nickName = "Unknown User";
+        var updatedPlayerName = "Karolek";
         var points = 150;
 
         _dutchRepositoryMock
-            .Setup(repo => repo.GetOneScore(gameId, nickName, _token))
-            .ReturnsAsync(null as DutchScore);
+            .Setup(repo => repo.GetScoresByGame(gameId, _token))
+            .ReturnsAsync(new List<DutchScore>());
 
         // Act
-        var result = await _dutchService.UpdateOne(gameId, nickName, points, _token);
+        var result = await _dutchService.UpdateOne(gameId, updatedPlayerName, points, _token);
 
         // Assert
         Assert.False(result);
-        _dutchRepositoryMock.Verify(repo => repo.GetOneScore(gameId, nickName, _token), Times.Once);
-        _dutchRepositoryMock.Verify(repo => repo.UpdateOne(It.IsAny<DutchScore>(), It.IsAny<int>(), _token), Times.Never);
+        _dutchRepositoryMock.Verify(repo => repo.GetScoresByGame(gameId, _token), Times.Once);
+        _dutchRepositoryMock.Verify(repo => repo.UpdateManyScores(It.IsAny<List<DutchScore>>(), _token), Times.Never);
     }
 
     [Fact]
-    public async Task CreateMany_ShouldCreateGame_WhenAllUsersExist()
+    public async Task UpdateOne_ShouldReturnFalse_WhenScoreListDoesNotContainGivenUser()
     {
         // Arrange
+        var gameId = Guid.NewGuid();
+        var updatedPlayerName = "Karolek";
+        var points = 150;
+
+        _dutchRepositoryMock
+            .Setup(repo => repo.GetScoresByGame(gameId, _token))
+            .ReturnsAsync(new List<DutchScore>() { new() { Id = Guid.NewGuid(), Player = new () } });
+
+        // Act
+        var result = await _dutchService.UpdateOne(gameId, updatedPlayerName, points, _token);
+
+        // Assert
+        Assert.False(result);
+        _dutchRepositoryMock.Verify(repo => repo.GetScoresByGame(gameId, _token), Times.Once);
+        _dutchRepositoryMock.Verify(repo => repo.UpdateManyScores(It.IsAny<List<DutchScore>>(), _token), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(50, 100, 100, 1, 2, 2)]
+    [InlineData(100, 100, 100, 1, 1, 1)]
+    [InlineData(60, 40, 20, 3, 2, 1)]
+    [InlineData(150, 30, 30, 3, 1, 1)]
+    public async Task CreateMany_ShouldCreateGame_WhenAllUsersExist(int score1, int score2, int score3, int rank1, int rank2, int rank3)
+    {
+        // Arrange
+        var comment = "New game";
         var command = new CreateDutchGameCommand
         {
-            Comment = "New Game",
+            Comment = comment,
             ScorePairs =
             [
-                new ScorePair { NickName = "User1", Score = 50 },
-                new ScorePair { NickName = "User2", Score = 100 }
+                new ScorePair { NickName = "User1", Score = score1 },
+                new ScorePair { NickName = "User2", Score = score2 },
+                new ScorePair { NickName = "User3", Score = score3 }
             ]
         };
         
-
         var users = new List<AllStarUser>
         {
             new() { Id = Guid.NewGuid(), Nickname = "User1" },
-            new() { Id = Guid.NewGuid(), Nickname = "User2" }
+            new() { Id = Guid.NewGuid(), Nickname = "User2" },
+            new() { Id = Guid.NewGuid(), Nickname = "User3" }
+        };
+
+        var dutchGameToBeCreated = new DutchGame()
+        {
+            Comment = comment,
+            DutchScores =
+            [
+                new DutchScore() { Player = new() {Nickname = "User1"}, Points = score1, Position = rank1 },
+                new DutchScore() { Player = new() {Nickname = "User2"}, Points = score2, Position = rank2 },
+                new DutchScore() { Player = new() {Nickname = "User3"}, Points = score3, Position = rank3 },
+            ]
         };
 
         _userRepositoryMock
@@ -145,7 +207,19 @@ public class DutchServiceTests
         await _dutchService.CreateMany(command, _token);
 
         // Assert
-        _dutchRepositoryMock.Verify(repo => repo.CreateMany(It.IsAny<DutchGame>(), It.IsAny<IEnumerable<DutchScore>>(), _token), Times.Once);
+        _dutchRepositoryMock.Verify(repo => repo.CreateMany(
+            It.Is<DutchGame>(dg => dg.Comment == comment),
+            It.Is<IEnumerable<DutchScore>>(scores =>
+                scores.Count() == dutchGameToBeCreated.DutchScores.Count &&
+                scores.All(
+                    score => dutchGameToBeCreated.DutchScores.Any(
+                        expected => expected.Points == score.Points &&
+                                    expected.Position == score.Position)) &&
+                dutchGameToBeCreated.DutchScores.All(
+                    g => scores.Any(
+                        expected => expected.Points == g.Points &&
+                                    expected.Position == g.Position))),
+            _token), Times.Once);
     }
 
     [Fact]

@@ -53,4 +53,25 @@ public class DutchRepository(AppDbContext context) : IDutchRepository
           .Where(ds => ds.Player.Nickname == nickName)
           .SingleOrDefaultAsync(token);
     }
+
+    public async Task<List<DutchScore>> GetScoresByGame(Guid gameId, CancellationToken token)
+    {
+        return await context.DutchScores
+          .Include(ds => ds.Game) // check if neccessery
+          .Include(ds => ds.Player) // check if neccessery
+          .Where(ds => ds.Game.Id == gameId)
+          .ToListAsync(token);
+    }
+
+    public async Task<int> UpdateManyScores(List<DutchScore> scores, CancellationToken token)
+    {
+        foreach (var score in scores)
+        {
+            context.Attach(score);
+
+            context.Entry(score).State = EntityState.Modified;
+        }
+
+        return await context.SaveChangesAsync(token);
+    }
 }

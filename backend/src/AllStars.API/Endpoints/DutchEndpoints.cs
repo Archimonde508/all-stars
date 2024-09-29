@@ -55,6 +55,7 @@ public static class DutchEndpoints
             }
 
             var command = mapper.Map<CreateDutchGameCommand>(request);
+
             await dutchService.CreateMany(command, token);
             return Results.Ok();
         }
