@@ -61,4 +61,11 @@ public class UserRepository(AppDbContext context) : IUserRepository
             .Where(u => nickNames.Contains(u.Nickname))
             .ToListAsync(token);
     }
+
+    public async Task<List<string>> GetAllNicknames(CancellationToken token)
+    {
+        return await context.Users
+           .Select(u => u.Nickname)
+           .ToListAsync(token);
+    }
 }

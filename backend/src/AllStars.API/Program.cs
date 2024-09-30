@@ -69,6 +69,7 @@ var mapperConfig = new MapperConfiguration(config =>
     config.AddProfile(new CreateDutchGameCommandProfile());
     config.AddProfile(new DutchScoreResponseProfile());
     config.AddProfile(new CreateUserRequestProfile());
+    config.AddProfile(new UserNickNamesResponseProfile());
 });
 builder.Services.
     AddSingleton(mapperConfig.CreateMapper());
@@ -109,7 +110,7 @@ app.MapPut("/dutch", DutchEndpoints.PutScore);
 // REMOVE IT FROM PRD
 app.MapPut("/dev/users", UserEndpoints.RegisterUser);
 
-
+app.MapGet("/users/nicknames", UserEndpoints.GetAllNickNames);
 app.MapPost("/login", AuthEndpoints.Login);
 
 var applyMigration = configuration.GetSection("PostgresDatabaseOptions:ApplyMigration").Value == "true";

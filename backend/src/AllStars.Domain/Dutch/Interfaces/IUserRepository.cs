@@ -8,6 +8,8 @@ public interface IUserRepository
 
     Task<List<AllStarUser>> GetManyAsync(IEnumerable<string> nickNames, CancellationToken token);
 
+    Task<List<string>> GetAllNicknames(CancellationToken token);
+
     Task CreateDefaultUsersAsync(CancellationToken token);
 
     Task CreateUserAsync(AllStarUser user, CancellationToken token);

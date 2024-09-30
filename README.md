@@ -6,17 +6,11 @@
 4. Porty 5000 i 5001, masz swaggera dla backendu
 
 ## TODO:
-0. Wysylaj zawsze playerId w requestach
-1. Put dla DutchScore musi przeliczać Position wszystkich graczy z tej giery [15min] 
-2. Przetestuj powyzsze i sprawdz testy
 
-2. Na froncie musi być możliwość dodania giery (POST dutch) [30min]
-    interface np. modal:
-    Player (select) | POINTS
-    Player (select) | POINTS
-    + Add another player
-4. Dodaj możliwośc edycji istniejącej giery PUT dutch [duzo]
-    ale to trudniejsze, bo trzeba by zrobic widok z listą gier jeszcze
+0a. Zeby css ladnie wygladal
+
+1. Widok z wszystkimi grami
+2. Dodaj możliwośc edycji istniejącej giery PUT dutch [duzo]
 
 
 3. Zapisz token otrzymany po zalogowaniu i wykrozystaj go do POST dutch i PUT dutch [15min]

@@ -6,6 +6,12 @@ namespace AllStars.Application.Services.User;
 
 public class UserService(IUserRepository userRepository): IUserService
 {
+    public async Task<IEnumerable<string>> GetAllNicknames(CancellationToken token)
+    {
+        var users = await userRepository.GetAllNicknames(token);
+        return users;
+    }
+
     public async Task RegisterUserAsync(AllStarUser user, string password, CancellationToken token)
     {
         var existingUser = await userRepository.GetOneAsync(user.Nickname, token);

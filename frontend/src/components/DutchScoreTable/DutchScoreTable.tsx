@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { getScores } from "./api";
-import { DutchScore } from "./types.ts";
-import './dutchScoreTablesStyles.css'; 
+import { getScores } from "../../api/api.ts";
+import './styles.css'; 
+import { DutchScore } from "../../types/dutch.types.ts";
 
   const DutchScoresTable = () => {
 
