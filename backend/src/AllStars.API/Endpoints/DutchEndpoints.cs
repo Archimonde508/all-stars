@@ -109,4 +109,19 @@ public static class DutchEndpoints
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
+
+    public static async Task<IResult> Validate(
+        CancellationToken token)
+    {
+        try
+        {
+            _logger.Information("Succesfully fetched a request.");
+            return Results.Ok("Success");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Something went wrong when using GetAll endpoint.");
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        }
+    }
 }

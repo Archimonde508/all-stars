@@ -100,6 +100,8 @@ app.UseAuthorization();
 
 app.UseCors("AllowLocalhost");
 
+app.MapGet("/validate", DutchEndpoints.Validate);
+
 app.MapGet("/dutch/all", DutchEndpoints.GetAll);
 app.MapGet("/dutch", DutchEndpoints.GetUserScores);
 app.MapPost("/dutch", DutchEndpoints.PostGame);
