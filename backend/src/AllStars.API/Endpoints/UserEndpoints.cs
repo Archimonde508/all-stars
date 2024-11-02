@@ -60,31 +60,4 @@ public static class UserEndpoints
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
-
-    public static async Task<IResult> RegisterMockedUsers(
-        [FromServices] IUserService userService,
-        CancellationToken token)
-    {
-        try
-        {
-            // use it as tuples with password
-            var users = new List<AllStarUser>()
-            {
-                new AllStarUser(){ FirstName = "Patryk", LastName = "Olszewski", Nickname = "Patols77" }
-            };
-
-            foreach (var user in users)
-            {
-                var task = userService.RegisterUserAsync(user, request.Password, token);
-            }
-
-            
-            return Results.Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Something went wrong when using AddUser endpoint.");
-            return Results.StatusCode(StatusCodes.Status500InternalServerError);
-        }
-    }
 }
